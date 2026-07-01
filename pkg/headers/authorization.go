@@ -44,6 +44,15 @@ type Authorization struct {
 
 	// algorithm
 	Algorithm *AuthAlgorithm
+
+	// qop
+	QOP string
+
+	// cnonce (client nonce)
+	Cnonce string
+
+	// nc (nonce count)
+	Nc string
 }
 
 // Unmarshal decodes an Authorization header.
@@ -153,6 +162,10 @@ func (h Authorization) Marshal() base.HeaderValue {
 	ret := "Digest " +
 		"username=\"" + h.Username + "\", realm=\"" + h.Realm + "\", " +
 		"nonce=\"" + h.Nonce + "\", uri=\"" + h.URI + "\", response=\"" + h.Response + "\""
+
+	if h.QOP != "" {
+		ret += ", qop=" + h.QOP + ", nc=" + h.Nc + ", cnonce=\"" + h.Cnonce + "\""
+	}
 
 	if h.Opaque != nil {
 		ret += ", opaque=\"" + *h.Opaque + "\""

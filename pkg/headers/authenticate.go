@@ -62,6 +62,9 @@ type Authenticate struct {
 
 	// algorithm
 	Algorithm *AuthAlgorithm
+
+	// qop
+	QOP *string
 }
 
 // Unmarshal decodes a WWW-Authenticate header.
@@ -146,6 +149,9 @@ func (h *Authenticate) Unmarshal(v base.HeaderValue) error {
 					return err
 				}
 				h.Algorithm = &a
+
+			case "qop":
+				h.QOP = &v
 			}
 		}
 

@@ -1,15 +1,16 @@
 package auth
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"fmt"
+	"strings"
 
 	"github.com/bluenviron/gortsplib/v5/pkg/base"
 	"github.com/bluenviron/gortsplib/v5/pkg/headers"
 )
 
 // Sender allows to send credentials.
-// It requires a WWW-Authenticate header (provided by the server)
-// and a set of credentials.
 type Sender struct {
 	WWWAuth base.HeaderValue
 	User    string
@@ -58,13 +59,28 @@ func (se *Sender) AddAuthorization(req *base.Request) {
 		h.Nonce = se.authHeader.Nonce
 		h.URI = urStr
 		h.Algorithm = se.authHeader.Algorithm
+		h.Opaque = se.authHeader.Opaque
 
-		if se.authHeader.Algorithm == nil || *se.authHeader.Algorithm == headers.AuthAlgorithmMD5 {
-			h.Response = md5Hex(md5Hex(se.User+":"+se.authHeader.Realm+":"+se.Pass) + ":" +
-				se.authHeader.Nonce + ":" + md5Hex(string(req.Method)+":"+urStr))
-		} else { // sha256
-			h.Response = sha256Hex(sha256Hex(se.User+":"+se.authHeader.Realm+":"+se.Pass) + ":" +
-				se.authHeader.Nonce + ":" + sha256Hex(string(req.Method)+":"+urStr))
+		hash := md5Hex
+		if se.authHeader.Algorithm != nil && *se.authHeader.Algorithm == headers.AuthAlgorithmSHA256 {
+			hash = sha256Hex
+		}
+
+		ha1 := hash(se.User + ":" + se.authHeader.Realm + ":" + se.Pass)
+		ha2 := hash(string(req.Method) + ":" + urStr)
+
+		if se.authHeader.QOP != nil && hasAuthQOP(*se.authHeader.QOP) {
+			cnonce := generateCnonce()
+			nc := "00000001"
+			h.QOP = "auth"
+			h.Cnonce = cnonce
+			h.Nc = nc
+			// RFC 7616: response = H(HA1:nonce:nc:cnonce:qop:HA2)
+			h.Response = hash(ha1 + ":" + se.authHeader.Nonce + ":" +
+				nc + ":" + cnonce + ":auth:" + ha2)
+		} else {
+			// RFC 2069 (no qop): response = H(HA1:nonce:HA2)
+			h.Response = hash(ha1 + ":" + se.authHeader.Nonce + ":" + ha2)
 		}
 	}
 
@@ -73,4 +89,21 @@ func (se *Sender) AddAuthorization(req *base.Request) {
 	}
 
 	req.Header["Authorization"] = h.Marshal()
+}
+
+// generateCnonce returns a random client nonce.
+func generateCnonce() string {
+	b := make([]byte, 16)
+	_, _ = rand.Read(b)
+	return hex.EncodeToString(b)
+}
+
+// hasAuthQOP reports whether the qop challenge offers "auth".
+func hasAuthQOP(qop string) bool {
+	for _, v := range strings.Split(qop, ",") {
+		if strings.TrimSpace(v) == "auth" {
+			return true
+		}
+	}
+	return false
 }
