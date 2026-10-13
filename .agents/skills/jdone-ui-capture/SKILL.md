@@ -55,25 +55,27 @@ description: 화면(UI)이 바뀐 작업에서 바뀐 화면을 Playwright(없�
 
      ```js
      // capture.mjs
-     import { mkdirSync } from 'node:fs'
-     import { homedir } from 'node:os'
-     import { join } from 'node:path'
+     import { mkdirSync } from "node:fs";
+     import { homedir } from "node:os";
+     import { join } from "node:path";
 
-     import { chromium } from 'playwright'
+     import { chromium } from "playwright";
 
-     const root = join(homedir(), 'Downloads', 'JDONE-261014-카메라-일괄-등록')
+     const root = join(homedir(), "Downloads", "JDONE-261014-카메라-일괄-등록");
 
      const shot = async (page, feature, name) => {
-     	const dir = join(root, feature)
-     	mkdirSync(dir, { recursive: true })
-     	await page.screenshot({ path: join(dir, `${name}.png`) })
-     }
+       const dir = join(root, feature);
+       mkdirSync(dir, { recursive: true });
+       await page.screenshot({ path: join(dir, `${name}.png`) });
+     };
 
-     const browser = await chromium.launch()
-     const page = await browser.newPage({ viewport: { width: 1920, height: 1080 } })
-     await page.goto('http://localhost:18000/cameras')
-     await shot(page, '01-일괄-등록', '01-빈-목록')
-     await browser.close()
+     const browser = await chromium.launch();
+     const page = await browser.newPage({
+       viewport: { width: 1920, height: 1080 },
+     });
+     await page.goto("http://localhost:18000/cameras");
+     await shot(page, "01-일괄-등록", "01-빈-목록");
+     await browser.close();
      ```
 
 2. **내장 브라우저 (Playwright 가 없을 때)**: Claude Code 내장 브라우저(Claude Browser)나 Codex 내장 브라우저에서 뷰포트를 1920×1080 으로 맞추고 같은 순서로 찍는다. 그 도구가 이미지를 파일로 저장하지 못하면 화면 확인만 하고, 저장은 위 스크립트 방식으로 한다.
