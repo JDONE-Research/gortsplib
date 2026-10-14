@@ -24,6 +24,7 @@ type clientFormat struct {
 	remoteSSRCFilled      bool                  // play
 	remoteSSRCValue       uint32                // play
 	rtpReceiver           *rtpreceiver.Receiver // play
+	markerFixer           *markerFixer          // play
 	rtpSender             *rtpsender.Sender     // record or back channel
 	writePacketRTPInQueue func([]byte) error
 }
@@ -64,6 +65,8 @@ func (cf *clientFormat) initialize() {
 		if err != nil {
 			panic(err)
 		}
+
+		cf.markerFixer = newMarkerFixer(cf.format)
 	}
 }
 
@@ -258,7 +261,11 @@ func (cf *clientFormat) readPacketRTP(payload []byte, header *rtp.Header, header
 	}
 
 	for _, pkt := range pkts {
-		cf.onPacketRTP(pkt)
+		if cf.markerFixer != nil {
+			cf.markerFixer.process(pkt, cf.onPacketRTP)
+		} else {
+			cf.onPacketRTP(pkt)
+		}
 	}
 
 	return true
