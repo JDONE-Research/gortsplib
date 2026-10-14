@@ -25,6 +25,7 @@ type serverSessionFormat struct {
 	remoteSSRCFilled      bool                  // record or back channel
 	remoteSSRCValue       uint32                // record or back channel
 	rtpReceiver           *rtpreceiver.Receiver // record or back channel
+	markerFixer           *markerFixer          // record or back channel
 	writePacketRTPInQueue func([]byte) error
 	rtpSender             *rtpsender.Sender // play
 }
@@ -56,6 +57,8 @@ func (ssf *serverSessionFormat) initialize() {
 		if err != nil {
 			panic(err)
 		}
+
+		ssf.markerFixer = newMarkerFixer(ssf.format)
 	} else {
 		ssf.rtpSender = &rtpsender.Sender{
 			ClockRate: ssf.format.ClockRate(),
@@ -276,7 +279,11 @@ func (ssf *serverSessionFormat) readPacketRTP(payload []byte, header *rtp.Header
 	}
 
 	for _, pkt := range pkts {
-		ssf.onPacketRTP(pkt)
+		if ssf.markerFixer != nil {
+			ssf.markerFixer.process(pkt, ssf.onPacketRTP)
+		} else {
+			ssf.onPacketRTP(pkt)
+		}
 	}
 
 	return true
