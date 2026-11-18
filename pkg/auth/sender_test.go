@@ -74,9 +74,8 @@ var casesSender = []struct {
 		},
 		base.HeaderValue{
 			"Digest username=\"myuser\", realm=\"myrealm\", nonce=\"f49ac6dd0ba708d4becddc9692d1f2ce\", " +
-				"uri=\"rtsp://myhost/mypath?key=val/trackID=3\", " +
-				"response=\"e298296ce35c9ab79699c8f3f9508944c1be9395e892f8205b6d66f1b8e663ee\", " +
-				"algorithm=\"SHA-256\"",
+				"uri=\"rtsp://myhost/mypath?key=val/trackID=3\", response=\"ba6e9cccbfeb38db775378a0a9067ba5\", " +
+				"algorithm=\"MD5\"",
 		},
 	},
 }

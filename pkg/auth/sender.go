@@ -10,6 +10,23 @@ import (
 	"github.com/bluenviron/gortsplib/v5/pkg/headers"
 )
 
+// authPriority returns the preference of a challenge: Digest MD5 > Digest SHA-256 > Basic.
+// MD5 is preferred over SHA-256 because some cameras offer both algorithms
+// but reject SHA-256 responses, and retrying after a failure would increase
+// failed login attempts and may lock the camera account.
+func authPriority(a *headers.Authenticate) int {
+	switch {
+	case a.Method == headers.AuthMethodBasic:
+		return 0
+
+	case a.Algorithm != nil && *a.Algorithm == headers.AuthAlgorithmSHA256:
+		return 1
+
+	default:
+		return 2
+	}
+}
+
 // Sender allows to send credentials.
 type Sender struct {
 	WWWAuth base.HeaderValue
@@ -28,9 +45,7 @@ func (se *Sender) Initialize() error {
 			continue // ignore unrecognized headers
 		}
 
-		if se.authHeader == nil ||
-			(auth.Algorithm != nil && *auth.Algorithm == headers.AuthAlgorithmSHA256) ||
-			(se.authHeader.Method == headers.AuthMethodBasic) {
+		if se.authHeader == nil || authPriority(&auth) > authPriority(se.authHeader) {
 			se.authHeader = &auth
 		}
 	}
@@ -100,7 +115,7 @@ func generateCnonce() string {
 
 // hasAuthQOP reports whether the qop challenge offers "auth".
 func hasAuthQOP(qop string) bool {
-	for _, v := range strings.Split(qop, ",") {
+	for v := range strings.SplitSeq(qop, ",") {
 		if strings.TrimSpace(v) == "auth" {
 			return true
 		}
